@@ -292,10 +292,8 @@ async function getKeywordMetrics(keywords, dataforSeoEmail, dataforSeoPassword) 
 
         console.log('🧹 Cleaned keywords for DataForSEO:', cleanKeywords.slice(0, 5));
         console.log('📊 Getting keyword metrics for:', cleanKeywords.length, 'keywords');
-        console.log('🔑 Using credentials:', dataforSeoEmail, ':', dataforSeoPassword.substring(0, 3) + '***');
 
         const auth = btoa(`${dataforSeoEmail}:${dataforSeoPassword}`);
-        console.log('🔐 Auth header:', auth.substring(0, 10) + '...');
 
         const response = await fetch('https://api.dataforseo.com/v3/keywords_data/google_ads/search_volume/live', {
             method: 'POST',
@@ -472,16 +470,7 @@ async function analyzeAndCluster(keywordMetrics, relatedKeywords, serpData, busi
     console.log('📊 Processing', volumeResults.length, 'volume results');
     console.log('🔍 Sample volume result:', volumeResults[0]);
 
-    volumeResults.forEach((item, index) => {
-        console.log(`📊 Item ${index}:`, {
-            keyword: item.keyword,
-            search_volume: item.search_volume,
-            hasKeyword: !!item.keyword,
-            hasVolume: !!item.search_volume,
-            volumeValue: item.search_volume,
-            volumeType: typeof item.search_volume
-        });
-
+        volumeResults.forEach((item, index) => {
         if (item.keyword && item.search_volume > 0) {
             keywordDB.set(item.keyword, {
                 keyword: item.keyword,
@@ -949,7 +938,6 @@ function downloadReport() {
 // Test DataForSEO credentials
 async function testDataForSeoCredentials(email, password) {
     try {
-        console.log('Testing DataForSEO credentials...');
         const auth = btoa(`${email}:${password}`);
 
         const response = await fetch('https://api.dataforseo.com/v3/appendix/user_data', {
@@ -960,16 +948,12 @@ async function testDataForSeoCredentials(email, password) {
             }
         });
 
-        console.log('Credential test response status:', response.status);
-
         if (!response.ok) {
             const errorText = await response.text();
-            console.error('Credential test failed:', response.status, errorText);
             throw new Error(`DataForSEO credential test failed: ${response.status} ${errorText}`);
         }
 
         const data = await response.json();
-        console.log('Credential test successful:', data);
         return true;
     } catch (error) {
         console.error('Error testing DataForSEO credentials:', error);
