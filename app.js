@@ -72,21 +72,58 @@ async function startAnalysis() {
 
         // Step 2: Get keyword data (parallel API calls)
         updateProgress(2, 'Getting search volumes and competitor data...');
+        console.log('🔄 Starting parallel API calls...');
+
         const [keywordMetrics, relatedKeywords, serpData] = await Promise.all([
             getKeywordMetrics(seedKeywords, dataforSeoEmail, dataforSeoPassword),
             getRelatedKeywords(seedKeywords, dataforSeoEmail, dataforSeoPassword),
             getSerpData(seedKeywords, dataforSeoEmail, dataforSeoPassword)
         ]);
 
+        console.log('✅ All API calls completed');
+        console.log('📊 Keyword metrics result:', keywordMetrics?.tasks?.[0]?.result_count || 0, 'keywords');
+        console.log('🔗 Related keywords result:', relatedKeywords?.tasks?.[0]?.result_count || 0, 'keywords');
+        console.log('🔍 SERP data result:', serpData?.tasks?.length || 0, 'tasks');
+
         // Step 3: Analyze and cluster
         updateProgress(3, 'Analyzing competitors and clustering keywords...');
-        const clusters = await analyzeAndCluster(keywordMetrics, relatedKeywords, serpData, businessType);
+        console.log('🔄 Starting analysis and clustering...');
+
+        let clusters;
+        try {
+            clusters = await analyzeAndCluster(keywordMetrics, relatedKeywords, serpData, businessType);
+        } catch (clusterError) {
+            console.error('❌ Clustering failed:', clusterError);
+            throw new Error(`Clustering failed: ${clusterError.message}`);
+        }
+
+        console.log('✅ Clustering completed');
+        console.log('📈 Generated clusters:', clusters?.length || 0);
+        console.log('🎯 Sample cluster:', clusters?.[0]);
 
         // Step 4: Generate report
         updateProgress(4, 'Generating final report...');
-        const report = await generateReport(keywordTopic, businessType, perplexityKey, dataforSeoEmail, dataforSeoPassword, clusters);
+        console.log('🔄 Generating report...');
+
+        let report;
+        try {
+            report = await generateReport(keywordTopic, businessType, perplexityKey, dataforSeoEmail, dataforSeoPassword, clusters);
+        } catch (reportError) {
+            console.error('❌ Report generation failed:', reportError);
+            throw new Error(`Report generation failed: ${reportError.message}`);
+        }
+
+        console.log('✅ Report generated');
+        console.log('📋 Report structure:', {
+            clusters: report?.clusters?.length || 0,
+            quick_wins: report?.quick_wins?.length || 0,
+            high_value: report?.high_value?.length || 0,
+            competitors: report?.competitors?.length || 0,
+            has_action_plan: !!report?.action_plan
+        });
 
         // Show results
+        console.log('🔄 Displaying results...');
         analysisData = report;
         showResults(report);
 
@@ -126,20 +163,40 @@ async function generateKeywordsFromTopic(topic, businessType, apiKey) {
 
     let keywords = [];
     try {
-        keywords = JSON.parse(content_text);
+        // Remove markdown code blocks if present
+        let cleanContent = content_text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+
+        // Try to parse as JSON first
+        keywords = JSON.parse(cleanContent);
     } catch (e) {
+        console.log('⚠️ JSON parsing failed, trying line-by-line parsing...');
+
+        // If JSON parsing fails, try line-by-line parsing
         const lines = content_text.split('\n');
         keywords = lines
-            .map(line => line.replace(/^[\d\-\*\.\s\[\]"']+/, '').replace(/["'\]\[]/g, '').trim())
+            .map(line => line.replace(/^[\d\-\*\.\s\[\]"'`]+/, '').replace(/["'\]\[`]/g, '').trim())
             .filter(kw => kw.length > 3 && kw.length < 100)
+            .filter(kw => !kw.includes('```') && !kw.includes('json'))
             .slice(0, 30);
     }
+
+    // Clean up keywords - remove trailing commas, quotes, etc.
+    keywords = keywords
+        .map(kw => kw.toString().trim())
+        .map(kw => kw.replace(/[,\'"`;]+$/, '')) // Remove trailing punctuation
+        .filter(kw => kw.length > 2 && kw.length < 100)
+        .filter(kw => !kw.includes('```') && !kw.includes('json'))
+        .filter(kw => /^[a-zA-Z0-9\s\-_]+$/.test(kw)) // Only allow alphanumeric, spaces, hyphens, underscores
 
     if (!Array.isArray(keywords) || keywords.length === 0) {
         throw new Error('Failed to generate keywords for the provided topic.');
     }
 
-    return keywords.slice(0, 25);
+    const finalKeywords = keywords.slice(0, 25);
+    console.log('🎯 Generated Keywords:', finalKeywords);
+    console.log('📝 Sample keywords for DataForSEO:', finalKeywords.slice(0, 5));
+
+    return finalKeywords;
 }
 
 // Step 1: Scrape website
@@ -221,15 +278,30 @@ Return ONLY a JSON array of keyword strings, no explanations:`;
 
     let keywords = [];
     try {
-        keywords = JSON.parse(content_text);
+        // Remove markdown code blocks if present
+        let cleanContent = content_text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+
+        // Try to parse as JSON first
+        keywords = JSON.parse(cleanContent);
     } catch (e) {
-        // Parse from text format
+        console.log('⚠️ JSON parsing failed, trying line-by-line parsing...');
+
+        // If JSON parsing fails, try line-by-line parsing
         const lines = content_text.split('\n');
         keywords = lines
-            .map(line => line.replace(/^[\d\-\*\.\s\[\]"']+/, '').replace(/["'\]\[]/g, '').trim())
+            .map(line => line.replace(/^[\d\-\*\.\s\[\]"'`]+/, '').replace(/["'\]\[`]/g, '').trim())
             .filter(kw => kw.length > 3 && kw.length < 100)
+            .filter(kw => !kw.includes('```') && !kw.includes('json'))
             .slice(0, 30);
     }
+
+    // Clean up keywords - remove trailing commas, quotes, etc.
+    keywords = keywords
+        .map(kw => kw.toString().trim())
+        .map(kw => kw.replace(/[,\'"`;]+$/, '')) // Remove trailing punctuation
+        .filter(kw => kw.length > 2 && kw.length < 100)
+        .filter(kw => !kw.includes('```') && !kw.includes('json'))
+        .filter(kw => /^[a-zA-Z0-9\s\-_]+$/.test(kw)) // Only allow alphanumeric, spaces, hyphens, underscores
 
     if (!Array.isArray(keywords) || keywords.length === 0) {
         throw new Error('Failed to generate keywords from website content.');
@@ -241,11 +313,19 @@ Return ONLY a JSON array of keyword strings, no explanations:`;
 // Get keyword metrics from DataForSEO
 async function getKeywordMetrics(keywords, dataforSeoEmail, dataforSeoPassword) {
     try {
-        console.log('Getting keyword metrics for:', keywords.length, 'keywords');
-        console.log('Using credentials:', dataforSeoEmail, ':', dataforSeoPassword.substring(0, 3) + '***');
+        // Clean and validate keywords before sending
+        const cleanKeywords = keywords
+            .map(kw => kw.toString().trim().toLowerCase())
+            .filter(kw => kw.length > 0 && kw.length < 100)
+            .filter(kw => !kw.includes('\n') && !kw.includes('\t'))
+            .slice(0, 100); // DataForSEO limit
+
+        console.log('🧹 Cleaned keywords for DataForSEO:', cleanKeywords.slice(0, 5));
+        console.log('📊 Getting keyword metrics for:', cleanKeywords.length, 'keywords');
+        console.log('🔑 Using credentials:', dataforSeoEmail, ':', dataforSeoPassword.substring(0, 3) + '***');
 
         const auth = btoa(`${dataforSeoEmail}:${dataforSeoPassword}`);
-        console.log('Auth header:', auth.substring(0, 10) + '...');
+        console.log('🔐 Auth header:', auth.substring(0, 10) + '...');
 
         const response = await fetch('https://api.dataforseo.com/v3/keywords_data/google_ads/search_volume/live', {
             method: 'POST',
@@ -254,7 +334,7 @@ async function getKeywordMetrics(keywords, dataforSeoEmail, dataforSeoPassword) 
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify([{
-                keywords: keywords,
+                keywords: cleanKeywords,
                 location_code: 2840, // USA
                 language_code: "en"
             }])
@@ -266,10 +346,31 @@ async function getKeywordMetrics(keywords, dataforSeoEmail, dataforSeoPassword) 
         }
 
         const data = await response.json();
-        console.log('DataForSEO response:', data);
-        console.log('DataForSEO status_code:', data.status_code);
-        console.log('DataForSEO tasks:', data.tasks);
-        console.log('DataForSEO first task result:', data.tasks?.[0]?.result);
+        console.log('✅ DataForSEO API Success:', {
+            status_code: data.status_code,
+            status_message: data.status_message,
+            cost: data.cost,
+            tasks_count: data.tasks_count,
+            time: data.time
+        });
+
+        if (data.tasks && data.tasks.length > 0) {
+            console.log('📊 Task Details:', {
+                task_status: data.tasks[0].status_code,
+                task_message: data.tasks[0].status_message,
+                result_count: data.tasks[0].result_count,
+                has_result: !!data.tasks[0].result
+            });
+
+            if (data.tasks[0].result) {
+                console.log('🎯 Sample Results:', data.tasks[0].result.slice(0, 3));
+            } else {
+                console.warn('⚠️ No results returned. This might be due to:');
+                console.warn('- Keywords have no search volume data');
+                console.warn('- API endpoint limitations');
+                console.warn('- Request format issues');
+            }
+        }
 
         // Return the full response for analyzeAndCluster to process
         return data;
@@ -388,11 +489,29 @@ async function getSerpData(keywords, dataforSeoEmail, dataforSeoPassword) {
 
 // Step 4: Analyze and cluster keywords
 async function analyzeAndCluster(keywordMetrics, relatedKeywords, serpData, businessType) {
+    console.log('🔍 Starting analyzeAndCluster with:', {
+        keywordMetrics: keywordMetrics?.tasks?.[0]?.result?.length || 0,
+        relatedKeywords: relatedKeywords?.tasks?.[0]?.result?.length || 0,
+        serpData: serpData?.tasks?.length || 0
+    });
+
     const keywordDB = new Map();
 
     // Process keyword metrics
     const volumeResults = keywordMetrics.tasks?.[0]?.result || [];
-    volumeResults.forEach(item => {
+    console.log('📊 Processing', volumeResults.length, 'volume results');
+    console.log('🔍 Sample volume result:', volumeResults[0]);
+
+    volumeResults.forEach((item, index) => {
+        console.log(`📊 Item ${index}:`, {
+            keyword: item.keyword,
+            search_volume: item.search_volume,
+            hasKeyword: !!item.keyword,
+            hasVolume: !!item.search_volume,
+            volumeValue: item.search_volume,
+            volumeType: typeof item.search_volume
+        });
+
         if (item.keyword && item.search_volume > 0) {
             keywordDB.set(item.keyword, {
                 keyword: item.keyword,
@@ -408,10 +527,18 @@ async function analyzeAndCluster(keywordMetrics, relatedKeywords, serpData, busi
         }
     });
 
+    console.log('✅ Added', keywordDB.size, 'keywords from volume results');
+
     // Add related keywords
     const relatedResults = relatedKeywords.tasks?.[0]?.result || [];
-    relatedResults
-        .filter(item => item.search_volume > 100)
+    console.log('🔗 Processing', relatedResults.length, 'related results');
+    console.log('🔍 Sample related result:', relatedResults[0]);
+
+    const filteredRelated = relatedResults.filter(item => item.search_volume > 100);
+    console.log('🔍 Filtered to', filteredRelated.length, 'related keywords with volume > 100');
+    console.log('🔍 Sample filtered related:', filteredRelated[0]);
+
+    filteredRelated
         .slice(0, 200)
         .forEach(item => {
             if (!keywordDB.has(item.keyword)) {
@@ -428,6 +555,8 @@ async function analyzeAndCluster(keywordMetrics, relatedKeywords, serpData, busi
                 });
             }
         });
+
+    console.log('✅ Total keywords in DB:', keywordDB.size);
 
     // Process SERP data
     const serpResults = serpData.tasks || [];
@@ -453,7 +582,17 @@ async function analyzeAndCluster(keywordMetrics, relatedKeywords, serpData, busi
 
     // Create clusters
     const keywordsArray = Array.from(keywordDB.values()).filter(kw => kw.search_volume > 50);
-    return createClusters(keywordsArray);
+    console.log('🎯 Keywords for clustering:', keywordsArray.length, '(filtered by search_volume > 50)');
+    console.log('📋 Sample keywords:', keywordsArray.slice(0, 3).map(kw => ({
+        keyword: kw.keyword,
+        search_volume: kw.search_volume,
+        commercial_score: kw.commercial_score
+    })));
+
+    const clusters = createClusters(keywordsArray);
+    console.log('🎉 Created clusters:', clusters.length);
+
+    return clusters;
 }
 
 // Helper functions
