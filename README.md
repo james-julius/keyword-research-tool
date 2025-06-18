@@ -42,7 +42,7 @@ You'll need accounts and API keys from these services:
 
 **DataForSEO** (Keyword & SERP Data)
 - Sign up at: https://dataforseo.com/
-- Use your account username and password
+- Get your username and password
 - Note: This uses your login credentials, not an API key
 
 ### 2. Installation
@@ -83,6 +83,9 @@ You'll need accounts and API keys from these services:
    - Detailed keyword clusters
    - Competitor analysis
    - Action plan
+
+6. **Download Report**
+   - Click "Download Full Report" for JSON data
 
 ## What You Get
 

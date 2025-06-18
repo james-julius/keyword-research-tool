@@ -32,18 +32,18 @@
 
     <!-- Main Content -->
     <div class="max-w-4xl mx-auto px-4 py-12">
-        
+
         <!-- Input Form -->
         <div id="input-form" class="bg-white rounded-xl shadow-lg p-8 mb-8">
             <h2 class="text-2xl font-bold text-gray-800 mb-6">🚀 Start Your Analysis</h2>
-            
+
             <div class="space-y-6">
                 <!-- Website URL -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Website URL</label>
-                    <input type="url" id="website-url" 
-                           placeholder="https://example.com" 
-                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Keyword Topic</label>
+                    <input type="text" id="keyword-topic"
+                           placeholder="e.g., 'best SEO practices'"
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
                 </div>
 
                 <!-- Business Type -->
@@ -64,34 +64,28 @@
                     <h3 class="text-lg font-semibold text-gray-800 mb-4">🔑 API Keys</h3>
                     <div class="grid md:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Firecrawl API Key</label>
-                            <input type="password" id="firecrawl-key" 
-                                   placeholder="fc-xxxxxxxxxx" 
-                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                        </div>
-                        <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Perplexity API Key</label>
-                            <input type="password" id="perplexity-key" 
-                                   placeholder="pplx-xxxxxxxxxx" 
+                            <input type="password" id="perplexity-key"
+                                   placeholder="pplx-xxxxxxxxxx"
                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">DataForSEO Username</label>
-                            <input type="text" id="dataforseo-username" 
-                                   placeholder="your@email.com" 
+                            <input type="text" id="dataforseo-username"
+                                   placeholder="your@email.com"
                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">DataForSEO Password</label>
-                            <input type="password" id="dataforseo-password" 
-                                   placeholder="your_password" 
+                            <input type="password" id="dataforseo-password"
+                                   placeholder="your_password"
                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
                         </div>
                     </div>
                 </div>
 
                 <!-- Start Button -->
-                <button onclick="startAnalysis()" 
+                <button onclick="startAnalysis()"
                         class="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold py-4 px-6 rounded-lg hover:from-blue-700 hover:to-purple-700 transition duration-200 transform hover:scale-105">
                     🔍 Start Keyword Analysis
                 </button>
@@ -102,21 +96,19 @@
         <div id="progress-section" class="hidden bg-white rounded-xl shadow-lg p-8 mb-8">
             <div class="text-center">
                 <div class="loading-spinner w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-                <h3 class="text-xl font-bold text-gray-800 mb-2">Analyzing Your Website...</h3>
+                <h3 class="text-xl font-bold text-gray-800 mb-2">Analyzing Your Keywords...</h3>
                 <p id="progress-text" class="text-gray-600 mb-4">Starting analysis...</p>
-                
+
                 <!-- Progress Bar -->
                 <div class="w-full bg-gray-200 rounded-full h-3 mb-4">
                     <div id="progress-bar" class="progress-bar bg-gradient-to-r from-blue-600 to-purple-600 h-3 rounded-full" style="width: 0%"></div>
                 </div>
-                
+
                 <div id="progress-steps" class="text-sm text-gray-500">
-                    <div id="step-1" class="mb-1">⏳ Crawling website content...</div>
-                    <div id="step-2" class="mb-1 opacity-50">🧠 Generating seed keywords...</div>
-                    <div id="step-3" class="mb-1 opacity-50">📊 Getting search volumes...</div>
-                    <div id="step-4" class="mb-1 opacity-50">🎯 Clustering keywords...</div>
-                    <div id="step-5" class="mb-1 opacity-50">🔍 Researching competitors...</div>
-                    <div id="step-6" class="mb-1 opacity-50">📈 Generating report...</div>
+                    <div id="step-1" class="mb-1">⏳ Generating seed keywords...</div>
+                    <div id="step-2" class="mb-1 opacity-50">🧠 Getting search volumes...</div>
+                    <div id="step-3" class="mb-1 opacity-50">🔍 Analyzing competitors...</div>
+                    <div id="step-4" class="mb-1 opacity-50">📈 Creating clusters...</div>
                 </div>
             </div>
         </div>
@@ -168,20 +160,12 @@
                 </div>
             </div>
 
-            <!-- Raw Analysis Data -->
-            <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
-                <h3 class="text-2xl font-bold text-gray-600 mb-4">🔍 Raw Analysis Data</h3>
-                <div id="raw-data-content">
-                    <!-- Raw data will be inserted here -->
-                </div>
-            </div>
-
-            <!-- Analysis Complete -->
+            <!-- Download Button -->
             <div class="text-center">
-                <div class="bg-green-50 border border-green-200 rounded-lg p-6">
-                    <h3 class="text-lg font-bold text-green-800 mb-2">✅ Analysis Complete!</h3>
-                    <p class="text-green-700">All keyword data, competitor analysis, and detailed metrics are displayed above.</p>
-                </div>
+                <button onclick="downloadReport()"
+                        class="bg-gradient-to-r from-green-600 to-blue-600 text-white font-bold py-3 px-8 rounded-lg hover:from-green-700 hover:to-blue-700 transition duration-200">
+                    📥 Download Full Report (JSON)
+                </button>
             </div>
         </div>
 
