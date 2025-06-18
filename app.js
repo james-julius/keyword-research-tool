@@ -199,37 +199,7 @@ async function generateKeywordsFromTopic(topic, businessType, apiKey) {
     return finalKeywords;
 }
 
-// Step 1: Scrape website
-async function scrapeWebsite(url, apiKey) {
-    const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            url: url,
-            formats: ['markdown'],
-            includeTags: ['title', 'meta', 'h1', 'h2', 'h3', 'p'],
-            onlyMainContent: true,
-            waitFor: 2000
-        })
-    });
-
-    if (!response.ok) {
-        throw new Error(`Firecrawl API error: ${response.status} ${response.statusText}`);
-    }
-
-    const data = await response.json();
-
-    if (!data.success) {
-        throw new Error('Failed to scrape website. Please check the URL and try again.');
-    }
-
-    return data.data;
-}
-
-// Step 2: Generate keywords
+// Step 1: Generate keywords
 async function generateKeywords(url, websiteData, businessType, apiKey) {
     const title = websiteData.metadata?.title || 'N/A';
     const description = websiteData.metadata?.description || 'N/A';
