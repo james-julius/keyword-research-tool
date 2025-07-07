@@ -135,68 +135,110 @@ async function startAnalysis() {
 
 // Generate keywords directly from a user-provided topic
 async function generateKeywordsFromTopic(topic, businessType, apiKey) {
-    const prompt = `Generate 30 high-commercial-intent seed keywords for the topic \"${topic}\" related to a ${businessType} business.\\n\\nFocus on:\\n1. High commercial intent (\\"buy\\", \\"best\\", \\"services\\")\\n2. Problem-solving intent\\n3. Comparison & review phrases\\n4. Industry-specific long-tail phrases\\n5. Local variations where appropriate\\n\\nReturn ONLY a JSON array of keyword strings, no explanations:`;
+    const prompt = `Generate 30 high-commercial-intent seed keywords for the topic "${topic}" related to a ${businessType} business.
 
-    const response = await fetch('https://api.perplexity.ai/chat/completions', {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            model: 'llama-3.1-sonar-small-128k-online',
+Focus on:
+1. High commercial intent ("buy", "best", "services")
+2. Problem-solving intent
+3. Comparison & review phrases
+4. Industry-specific long-tail phrases
+5. Local variations where appropriate
+
+Return ONLY a JSON array of keyword strings, no explanations:`;
+
+    try {
+        // Validate API key format
+        if (!apiKey || !apiKey.startsWith('pplx-')) {
+            throw new Error('Invalid Perplexity API key format. Key should start with "pplx-"');
+        }
+
+        console.log('🔄 Making Perplexity API request...');
+        console.log('📝 API Key prefix:', apiKey.substring(0, 8) + '...');
+        console.log('🏢 Business Type:', businessType);
+        console.log('🎯 Topic:', topic);
+
+        const requestBody = {
+            model: 'sonar-pro',
             messages: [
                 { role: 'system', content: `You are an expert SEO strategist specializing in ${businessType} businesses.` },
                 { role: 'user', content: prompt }
             ],
             max_tokens: 800,
             temperature: 0.2
-        })
-    });
+        };
 
-    if (!response.ok) {
-        throw new Error(`Perplexity API error: ${response.status} ${response.statusText}`);
-    }
+        console.log('📦 Request body:', JSON.stringify(requestBody, null, 2));
 
-    const data = await response.json();
-    const content_text = data.choices[0].message.content.trim();
+        const response = await fetch('https://api.perplexity.ai/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestBody)
+        });
 
-    let keywords = [];
-    try {
-        // Remove markdown code blocks if present
-        let cleanContent = content_text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+        if (!response.ok) {
+            const errorData = await response.text();
+            console.error('Perplexity API Error Details:', errorData);
+            throw new Error(`Perplexity API error: ${response.status} - ${errorData}`);
+        }
 
-        // Try to parse as JSON first
-        keywords = JSON.parse(cleanContent);
-    } catch (e) {
-        console.log('⚠️ JSON parsing failed, trying line-by-line parsing...');
+        const data = await response.json();
+        const content_text = data.choices[0].message.content.trim();
 
-        // If JSON parsing fails, try line-by-line parsing
-        const lines = content_text.split('\n');
-        keywords = lines
-            .map(line => line.replace(/^[\d\-\*\.\s\[\]"'`]+/, '').replace(/["'\]\[`]/g, '').trim())
-            .filter(kw => kw.length > 3 && kw.length < 100)
+        let keywords = [];
+        try {
+            // Remove markdown code blocks if present
+            let cleanContent = content_text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+
+            // Try to parse as JSON first
+            keywords = JSON.parse(cleanContent);
+        } catch (e) {
+            console.log('⚠️ JSON parsing failed, trying line-by-line parsing...');
+
+            // If JSON parsing fails, try line-by-line parsing
+            const lines = content_text.split('\n');
+            keywords = lines
+                .map(line => line.replace(/^[\d\-\*\.\s\[\]"'`]+/, '').replace(/["'\]\[`]/g, '').trim())
+                .filter(kw => kw.length > 3 && kw.length < 100)
+                .filter(kw => !kw.includes('```') && !kw.includes('json'))
+                .slice(0, 30);
+        }
+
+        // Clean up keywords - remove trailing commas, quotes, etc.
+        keywords = keywords
+            .map(kw => kw.toString().trim())
+            .map(kw => kw.replace(/[,\'"`;]+$/, '')) // Remove trailing punctuation
+            .filter(kw => kw.length > 2 && kw.length < 100)
             .filter(kw => !kw.includes('```') && !kw.includes('json'))
-            .slice(0, 30);
+            .filter(kw => /^[a-zA-Z0-9\s\-_]+$/.test(kw)) // Only allow alphanumeric, spaces, hyphens, underscores
+
+        if (!Array.isArray(keywords) || keywords.length === 0) {
+            throw new Error('Failed to generate keywords for the provided topic.');
+        }
+
+        const finalKeywords = keywords.slice(0, 25);
+        console.log('🎯 Generated Keywords:', finalKeywords);
+        console.log('📝 Sample keywords for DataForSEO:', finalKeywords.slice(0, 5));
+
+        return finalKeywords;
+    } catch (error) {
+        console.error('Error in generateKeywordsFromTopic:', error);
+        // Return fallback keywords if API fails
+        return [
+            `${topic} guide`,
+            `best ${topic}`,
+            `${topic} tips`,
+            `how to ${topic}`,
+            `${topic} tools`,
+            `${topic} services`,
+            `${topic} solutions`,
+            `${topic} software`,
+            `${topic} reviews`,
+            `${topic} comparison`
+        ];
     }
-
-    // Clean up keywords - remove trailing commas, quotes, etc.
-    keywords = keywords
-        .map(kw => kw.toString().trim())
-        .map(kw => kw.replace(/[,\'"`;]+$/, '')) // Remove trailing punctuation
-        .filter(kw => kw.length > 2 && kw.length < 100)
-        .filter(kw => !kw.includes('```') && !kw.includes('json'))
-        .filter(kw => /^[a-zA-Z0-9\s\-_]+$/.test(kw)) // Only allow alphanumeric, spaces, hyphens, underscores
-
-    if (!Array.isArray(keywords) || keywords.length === 0) {
-        throw new Error('Failed to generate keywords for the provided topic.');
-    }
-
-    const finalKeywords = keywords.slice(0, 25);
-    console.log('🎯 Generated Keywords:', finalKeywords);
-    console.log('📝 Sample keywords for DataForSEO:', finalKeywords.slice(0, 5));
-
-    return finalKeywords;
 }
 
 // Step 1: Generate keywords
@@ -229,7 +271,7 @@ Return ONLY a JSON array of keyword strings, no explanations:`;
             'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-            model: 'llama-3.1-sonar-small-128k-online',
+            model: 'sonar-pro',
             messages: [
                 { role: 'system', content: `You are an expert SEO strategist specializing in ${businessType} businesses.` },
                 { role: 'user', content: prompt }
